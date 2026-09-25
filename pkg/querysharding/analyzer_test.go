@@ -79,6 +79,10 @@ http_requests_total`,
 			name:       "sum by le together with histogram_quantile in binary expression",
 			expression: `sum by (le) (http_requests_duration_seconds_bucket) + histogram_quantile(0.99, http_requests_duration_seconds_bucket)`,
 		},
+		{
+			name:       "histogram_fraction over sum by le, not shardable",
+			expression: `histogram_fraction(0, 0.5, sum by (le) (rate(http_requests_duration_seconds_bucket[1m])))`,
+		},
 	}
 
 	shardableByLabels := []testCase{
@@ -138,6 +142,11 @@ sum by (container) (
 		{
 			name:           "histogram quantile",
 			expression:     "histogram_quantile(0.95, sum(rate(metric[1m])) by (le, cluster))",
+			shardingLabels: []string{"cluster"},
+		},
+		{
+			name:           "histogram fraction",
+			expression:     "histogram_fraction(0, 0.5, sum(rate(metric[1m])) by (le, cluster))",
 			shardingLabels: []string{"cluster"},
 		},
 		{

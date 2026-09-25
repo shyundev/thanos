@@ -111,7 +111,7 @@ func (a *QueryAnalyzer) Analyze(query string) (QueryAnalysis, error) {
 				case "absent_over_time", "absent", "scalar":
 					isShardable = false
 					return errNotShardable
-				case "histogram_quantile":
+				case "histogram_quantile", "histogram_fraction":
 					analysis = analysis.scopeToLabels([]string{"le"}, false)
 				}
 			}
