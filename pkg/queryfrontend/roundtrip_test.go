@@ -581,7 +581,7 @@ func testRoundTripQueryCacheWithShardingMiddleware(t *testing.T) {
 	rt, err := newFakeRoundTripper()
 	testutil.Ok(t, err)
 	defer rt.Close()
-	count, handler := promqlResultsWithFailures(3)
+	_, handler := promqlResultsWithFailures(3)
 	rt.setHandler(handler)
 
 	var (
@@ -634,16 +634,21 @@ func testRoundTripQueryCacheWithShardingMiddleware(t *testing.T) {
 	testutil.Assert(t, attempts == 3 || attempts == 4)
 
 	// Check that a subsequent request is served from the cache instead of
-	// hitting the server.
-	n := count.Load()
+	// hitting the server. The downstream requests are counted on the client
+	// side because a request abandoned by a failed attempt can still reach
+	// the server after that attempt has returned.
+	var downstream atomic.Int64
 	ctx := user.InjectOrgID(context.Background(), "1")
 	httpReq, err := NewThanosQueryRangeCodec(true).EncodeRequest(ctx, testRequest)
 	testutil.Ok(t, err)
 
-	_, rtErr = tpw(rt).RoundTrip(httpReq)
+	_, rtErr = tpw(queryrange.RoundTripFunc(func(r *http.Request) (*http.Response, error) {
+		downstream.Inc()
+		return rt.RoundTrip(r)
+	})).RoundTrip(httpReq)
 	testutil.Ok(t, rtErr)
 	testutil.Equals(t, http.StatusOK, res.StatusCode)
-	testutil.Equals(t, n, count.Load())
+	testutil.Equals(t, int64(0), downstream.Load())
 }
 
 // TestRoundTripLabelsCacheMiddleware tests the cache middleware for labels requests.
