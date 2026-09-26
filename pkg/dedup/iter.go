@@ -381,6 +381,10 @@ func (it *dedupSeriesIterator) Next() chunkenc.ValueType {
 }
 
 func (it *dedupSeriesIterator) lastFloatVal() (float64, bool) {
+	if it.lastT == math.MinInt64 {
+		// Nothing has been returned yet.
+		return 0, false
+	}
 	if it.useA && it.aval == chunkenc.ValFloat {
 		_, v := it.lastIter.At()
 		return v, true

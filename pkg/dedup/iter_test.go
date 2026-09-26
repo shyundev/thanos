@@ -561,6 +561,27 @@ func TestDedupSeriesSet(t *testing.T) {
 			},
 		},
 		{
+			// The second replica has the earliest sample, so it is returned first.
+			// Its value must not be adjusted to the first replica's value.
+			name:      "Regression test against 9034",
+			isCounter: true,
+			input: []series{
+				{
+					lset:    labels.FromStrings("a", "1"),
+					samples: []sample{{t: 15000, f: 15}, {t: 45000, f: 45}, {t: 75000, f: 75}},
+				}, {
+					lset:    labels.FromStrings("a", "1"),
+					samples: []sample{{t: 0, f: 0}, {t: 30000, f: 30}, {t: 60000, f: 60}},
+				},
+			},
+			exp: []series{
+				{
+					lset:    labels.FromStrings("a", "1"),
+					samples: []sample{{t: 0, f: 0}, {t: 15000, f: 15}, {t: 45000, f: 45}, {t: 75000, f: 75}},
+				},
+			},
+		},
+		{
 			// Regression test on real data against https://github.com/thanos-io/thanos/issues/2401.
 			// Real data with stale marker after downsample.CounterSeriesIterator (required for downsampling + rate).
 			name:      "Regression test on real data against 2401",
